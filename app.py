@@ -1083,6 +1083,7 @@ elif page == "Predictive Models":
                   color="Importance", color_continuous_scale=["#dbeafe", "#1a56db"])
     fig5.update_layout(coloraxis_showscale=False, plot_bgcolor="white", paper_bgcolor="white",
                        margin=dict(l=0, r=0, t=40, b=0), height=500)
+    fig5.update_xaxes(type="log", title="Importance (log scale)")
     st.caption("Permutation importance: average decrease in model performance when each feature is randomly shuffled (scale-independent, more reliable)")
     st.plotly_chart(fig5, use_container_width=True)
 
