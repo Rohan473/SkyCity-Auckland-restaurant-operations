@@ -669,7 +669,7 @@ df = load_data()
 # PAGE 1 — OVERVIEW
 # ════════════════════════════════════════════════════════════════════════════
 if page == "Overview":
-    section_header("Portfolio Overview", "High-level summary of SkyCity Auckland restaurant operations")
+    section_header("Predictive Modeling and Profit Optimization for Multi-Channel Restaurant Operations", "High-level summary of SkyCity Auckland restaurant operations")
 
     # KPI row
     c1, c2, c3, c4, c5 = st.columns(5)
