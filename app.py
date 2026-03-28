@@ -1067,18 +1067,23 @@ elif page == "Predictive Models":
     st.markdown("---")
 
     # ── Feature importance (tree models) ──
-    st.markdown("### Feature Importance")
+    st.markdown("### Feature Importance (Permutation-Based)")
     tree_models = {k: v for k, v in st.session_state["trained"].items() if k != "Linear Regression"}
     fi_model = st.selectbox("Select model for feature importance", list(tree_models.keys()), key="fi_sel")
     m = tree_models[fi_model]
-    importances = m.feature_importances_
+    
+    # Use permutation importance for scale-independent, more robust ranking
+    from sklearn.inspection import permutation_importance
+    perm_result = permutation_importance(m, st.session_state["X_test"], st.session_state["y_test"],
+                                         n_repeats=10, random_state=42, n_jobs=-1)
+    importances = perm_result.importances_mean
     fi_df = pd.DataFrame({"Feature": FEATURES, "Importance": importances}).sort_values("Importance")
     fig5 = px.bar(fi_df, x="Importance", y="Feature", orientation="h",
-                  title=f"Feature Importance — {fi_model}",
+                  title=f"Feature Importance — {fi_model} (Permutation-Based)",
                   color="Importance", color_continuous_scale=["#dbeafe", "#1a56db"])
     fig5.update_layout(coloraxis_showscale=False, plot_bgcolor="white", paper_bgcolor="white",
                        margin=dict(l=0, r=0, t=40, b=0), height=500)
-    fig5.update_xaxes(type="log", title="Importance (log scale)")
+    st.caption("Permutation importance: average decrease in model performance when each feature is randomly shuffled (scale-independent, more reliable)")
     st.plotly_chart(fig5, use_container_width=True)
 
     st.markdown("---")
