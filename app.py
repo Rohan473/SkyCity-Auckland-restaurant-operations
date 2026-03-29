@@ -213,7 +213,7 @@ def prepare_ml(df):
     return X_train, X_test, y_train, y_test, X_tr_s, X_te_s, sc, FEATURES
 
 
-@st.cache_resource
+
 def train_models(X_tr_s, X_te_s, X_train, X_test, y_train, y_test):
     models = {
         "Linear Regression":      LinearRegression(),
