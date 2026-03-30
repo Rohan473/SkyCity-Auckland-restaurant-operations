@@ -204,14 +204,13 @@ def prepare_ml(df):
         "CuisineType_enc", "Segment_enc", "Subregion_enc",
     ]
     TARGET = "TotalNetProfit"
-    X = df2[FEATURES]
-    y = df2[TARGET]
+    X = df2[FEATURES].fillna(0)  # Fill any NaN values with 0
+    y = df2[TARGET].fillna(0)     # Fill any NaN values with 0
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     sc = StandardScaler()
     X_tr_s = sc.fit_transform(X_train)
     X_te_s = sc.transform(X_test)
     return X_train, X_test, y_train, y_test, X_tr_s, X_te_s, sc, FEATURES
-
 
 
 def train_models(X_tr_s, X_te_s, X_train, X_test, y_train, y_test):
@@ -263,7 +262,6 @@ def train_models(X_tr_s, X_te_s, X_train, X_test, y_train, y_test):
     return results, trained
 
 
-@st.cache_resource
 def train_quantile_models(X_train, y_train):
     models = {
         "lower": GradientBoostingRegressor(
@@ -297,8 +295,8 @@ def prepare_ml_target(df, target):
         "RevenuePerOrder", "ProfitPerOrder",
         "CuisineType_enc", "Segment_enc", "Subregion_enc",
     ]
-    X = df2[FEATURES]
-    y = df2[target]
+    X = df2[FEATURES].fillna(0)  # Fill any NaN values with 0
+    y = df2[target].fillna(0)     # Fill any NaN values with 0
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     sc = StandardScaler()
     X_tr_s = sc.fit_transform(X_train)
@@ -306,7 +304,6 @@ def prepare_ml_target(df, target):
     return X_train, X_test, y_train, y_test, X_tr_s, X_te_s, sc, FEATURES
 
 
-@st.cache_resource
 def train_secondary_models(X_tr_s, X_te_s, X_train, X_test, y_train, y_test):
     """Train RF and XGBoost for a secondary prediction target."""
     models = {
