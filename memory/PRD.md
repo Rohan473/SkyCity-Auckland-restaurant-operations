@@ -136,6 +136,29 @@ This PRD reflects the current implementation status in the repository.
 
 ---
 
+## Deployment Issues & Fixes
+
+### 🔧 2026-03-29 — Critical: Model Retraining Cache Bug Fixed
+**Issue:** Models would not retrain in deployment.  
+**Root Cause:** Three training functions had `@st.cache_resource` decorator:
+- `train_models()` (lines 216–264 in app.py)
+- `train_quantile_models()` (lines 266–281)
+- `train_secondary_models()` (lines 309–330)
+
+The `@st.cache_resource` decorator persists cached ML models across Streamlit reruns. Since the function parameters (training data splits) have the same object values on each run, Streamlit's cache was never invalidated—returning stale models instead of training fresh ones.
+
+**Solution:** Removed `@st.cache_resource` from all three training functions in both `main/app.py` and cloned repo `app.py`. These functions now execute on-demand during each retrain request.
+
+**Impact:** 
+- Retraining now works as intended
+- Models will be freshly trained each session unless other caching logic is implemented
+- If performance becomes an issue in production, consider adding:
+  - An explicit session-state flag to track whether data changed
+  - A timestamp-based cache with TTL (time-to-live)
+  - A "manual retrain" button that only users can trigger
+
+---
+
 ## Prioritized Backlog
 
 ### P0 (Core — Done)
