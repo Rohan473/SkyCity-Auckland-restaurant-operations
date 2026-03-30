@@ -24,6 +24,10 @@ try:
 except ImportError:
     HAS_SCIPY = False
 
+# ── Initialize session state to prevent re-running ──
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="SkyCity Profit Optimizer",
@@ -124,8 +128,19 @@ st.markdown("""
 # ────────────────────────────────────────────────────────────────────────────
 DATA_FILENAME = "SkyCity Auckland Restaurants & Bars - SkyCity Auckland Restaurants & Bars.csv"
 _local_data_path = Path(__file__).resolve().parent / DATA_FILENAME
-_container_data_path = Path("/app") / DATA_FILENAME
-DATA_PATH  = _local_data_path if _local_data_path.exists() else _container_data_path
+_container_data_path = Path("/app/main") / DATA_FILENAME
+_root_container_path = Path("/app") / DATA_FILENAME
+
+# Try multiple paths for Streamlit Cloud compatibility
+if _local_data_path.exists():
+    DATA_PATH = _local_data_path
+elif _container_data_path.exists():
+    DATA_PATH = _container_data_path
+elif _root_container_path.exists():
+    DATA_PATH = _root_container_path
+else:
+    DATA_PATH = _local_data_path  # fallback, will error with clear message
+
 MODEL_DIR  = Path(__file__).resolve().parent / "models"
 
 
@@ -147,9 +162,18 @@ def load_models_from_disk():
     return None
 
 
-@st.cache_data
+@st.cache_data(show_spinner=True)
 def load_data():
-    df = pd.read_csv(DATA_PATH)
+    if not DATA_PATH.exists():
+        st.error(f"❌ **Data file not found!**\n\nExpected file at: `{DATA_PATH}`\n\nPlease ensure the CSV file is in the repository root or at `/app/main/`")
+        st.stop()
+    
+    try:
+        df = pd.read_csv(DATA_PATH)
+    except Exception as e:
+        st.error(f"❌ **Error loading data file:** {str(e)}\n\nFile path: `{DATA_PATH}`")
+        st.stop()
+    
     # Derived features
     df["TotalRevenue"]   = df["InStoreRevenue"] + df["UberEatsRevenue"] + df["DoorDashRevenue"] + df["SelfDeliveryRevenue"]
     df["TotalNetProfit"] = df["InStoreNetProfit"] + df["UberEatsNetProfit"] + df["DoorDashNetProfit"] + df["SelfDeliveryNetProfit"]
@@ -204,8 +228,8 @@ def prepare_ml(df):
         "CuisineType_enc", "Segment_enc", "Subregion_enc",
     ]
     TARGET = "TotalNetProfit"
-    X = df2[FEATURES]
-    y = df2[TARGET]
+    X = df2[FEATURES].fillna(0)  # Fill any NaN values with 0
+    y = df2[TARGET].fillna(0)     # Fill any NaN values with 0
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     sc = StandardScaler()
     X_tr_s = sc.fit_transform(X_train)
@@ -213,7 +237,6 @@ def prepare_ml(df):
     return X_train, X_test, y_train, y_test, X_tr_s, X_te_s, sc, FEATURES
 
 
-@st.cache_resource
 def train_models(X_tr_s, X_te_s, X_train, X_test, y_train, y_test):
     models = {
         "Linear Regression":      LinearRegression(),
@@ -263,7 +286,6 @@ def train_models(X_tr_s, X_te_s, X_train, X_test, y_train, y_test):
     return results, trained
 
 
-@st.cache_resource
 def train_quantile_models(X_train, y_train):
     models = {
         "lower": GradientBoostingRegressor(
@@ -297,8 +319,8 @@ def prepare_ml_target(df, target):
         "RevenuePerOrder", "ProfitPerOrder",
         "CuisineType_enc", "Segment_enc", "Subregion_enc",
     ]
-    X = df2[FEATURES]
-    y = df2[target]
+    X = df2[FEATURES].fillna(0)  # Fill any NaN values with 0
+    y = df2[target].fillna(0)     # Fill any NaN values with 0
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     sc = StandardScaler()
     X_tr_s = sc.fit_transform(X_train)
@@ -306,7 +328,6 @@ def prepare_ml_target(df, target):
     return X_train, X_test, y_train, y_test, X_tr_s, X_te_s, sc, FEATURES
 
 
-@st.cache_resource
 def train_secondary_models(X_tr_s, X_te_s, X_train, X_test, y_train, y_test):
     """Train RF and XGBoost for a secondary prediction target."""
     models = {
